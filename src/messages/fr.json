@@ -1,0 +1,10 @@
+{
+  "navigation": {
+    "home": "Accueil",
+    "portfolio": "Portfolio",
+    "about": "À propos",
+    "contact": "Contact",
+    "resume": "CV",
+    "login": "Connexion"
+  }
+}

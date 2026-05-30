@@ -1,0 +1,10 @@
+{
+  "navigation": {
+    "home": "Главная",
+    "portfolio": "Портфолио",
+    "about": "Обо мне",
+    "contact": "Контакты",
+    "resume": "Резюме",
+    "login": "Вход"
+  }
+}
