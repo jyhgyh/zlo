@@ -11,6 +11,7 @@ export type Artwork = {
   type: "physical" | "digital";
 
   price: number;
+
   currency: "EUR";
 
   category: string;
@@ -45,4 +46,8 @@ export type Artwork = {
 
   widthPx?: number;
   heightPx?: number;
+
+  availability:
+    | "available"
+    | "sold";
 };

@@ -41,7 +41,10 @@ export const artworks: Artwork[] = [
 
         widthCm: 100,
 
-        heightCm: 70
+        heightCm: 70,
+
+        availability: "available",
+        
     },
     {
         id: 2,
@@ -79,7 +82,9 @@ export const artworks: Artwork[] = [
 
         widthPx: 4096,
 
-        heightPx: 6144
+        heightPx: 6144,
+
+        availability: "available",
     },
     {
         id: 1,
@@ -121,7 +126,9 @@ export const artworks: Artwork[] = [
 
         widthCm: 100,
 
-        heightCm: 70
+        heightCm: 70,
+
+        availability: "available",
     },
     {
         id: 2,
@@ -159,7 +166,9 @@ export const artworks: Artwork[] = [
 
         widthPx: 4096,
 
-        heightPx: 6144
+        heightPx: 6144,
+
+        availability: "available",
     },{
         id: 1,
 
@@ -200,7 +209,9 @@ export const artworks: Artwork[] = [
 
         widthCm: 100,
 
-        heightCm: 70
+        heightCm: 70,
+
+        availability: "available",
     },
     {
         id: 2,
@@ -238,6 +249,8 @@ export const artworks: Artwork[] = [
 
         widthPx: 4096,
 
-        heightPx: 6144
+        heightPx: 6144,
+
+        availability: "available",
     },
 ];
