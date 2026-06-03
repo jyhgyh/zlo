@@ -1,3 +1,4 @@
+// src/data/artworks.ts
 import { Artwork } from "@/types/artwork";
 
 export const artworks: Artwork[] = [
@@ -87,7 +88,7 @@ export const artworks: Artwork[] = [
         availability: "available",
     },
     {
-        id: 1,
+        id: 3,
 
         title: "Golden Sunset",
 
@@ -131,7 +132,7 @@ export const artworks: Artwork[] = [
         availability: "available",
     },
     {
-        id: 2,
+        id: 4,
 
         title: "Galaxy Dreams",
 
@@ -170,7 +171,7 @@ export const artworks: Artwork[] = [
 
         availability: "available",
     },{
-        id: 1,
+        id: 5,
 
         title: "Golden Sunset",
 
@@ -214,7 +215,7 @@ export const artworks: Artwork[] = [
         availability: "available",
     },
     {
-        id: 2,
+        id: 6,
 
         title: "Galaxy Dreams",
 

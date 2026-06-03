@@ -1,9 +1,10 @@
 import Container from "@/components/layout/Container";
-import { artworks } from "@/data/artworks";
+import { getArtworkBySlug } from "@/lib/getArtworks";
 import { notFound } from "next/navigation";
 
 type Props = {
   params: Promise<{
+    locale: string;
     slug: string;
   }>;
 };
@@ -12,32 +13,50 @@ export default async function ArtworkPage({
   params,
 }: Props) {
   const { slug } = await params;
-
-  const artwork = artworks.find(
-    (item) => item.slug === slug
-  );
+  const artwork = await getArtworkBySlug(slug);
 
   if (!artwork) {
     notFound();
   }
 
+  const mainImage = artwork.gallery[0];
+
   return (
     <Container>
       <div className="py-12">
         <div className="grid gap-12 lg:grid-cols-2">
-          {/* IMAGE */}
-
           <div>
             <div className="aspect-[4/5] rounded-2xl border bg-gray-100">
-              <img
-                src={artwork.image}
-                alt={artwork.title}
-                className="h-full w-full rounded-2xl object-cover"
-              />
+              {mainImage ? (
+                <img
+                  src={mainImage.url}
+                  alt={mainImage.alt}
+                  className="h-full w-full rounded-2xl object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-gray-400">
+                  Artwork Image
+                </div>
+              )}
             </div>
-          </div>
 
-          {/* INFO */}
+            {artwork.gallery.length > 1 && (
+              <div className="mt-4 grid grid-cols-4 gap-3">
+                {artwork.gallery.map((image) => (
+                  <div
+                    key={image.id}
+                    className="aspect-square overflow-hidden rounded-lg border bg-gray-100"
+                  >
+                    <img
+                      src={image.url}
+                      alt={image.alt}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div>
             <div className="mb-4">
@@ -59,98 +78,102 @@ export default async function ArtworkPage({
             </h1>
 
             <p className="mt-4 text-3xl">
-              €{artwork.price}
+              {artwork.currency === "USD" ? "$" : "€"}
+              {artwork.price}
             </p>
 
-            <p className="mt-8 text-gray-600">
-              {artwork.description}
-            </p>
+            {artwork.description && (
+              <p className="mt-8 text-gray-600">
+                {artwork.description}
+              </p>
+            )}
 
-            {/* TAGS */}
-
-            <div className="mt-8 flex flex-wrap gap-2">
-              {artwork.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="
-                    rounded-full
-                    border
-                    px-3
-                    py-1
-                    text-sm
-                  "
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            {/* DETAILS */}
+            {artwork.tags.length > 0 && (
+              <div className="mt-8 flex flex-wrap gap-2">
+                {artwork.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="
+                      rounded-full
+                      border
+                      px-3
+                      py-1
+                      text-sm
+                    "
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
 
             <div className="mt-10 space-y-4 border-t pt-8">
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-6">
                 <span>Type</span>
                 <span>{artwork.type}</span>
               </div>
 
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-6">
                 <span>Category</span>
                 <span>{artwork.category}</span>
               </div>
 
-              <div className="flex justify-between">
-                <span>Size</span>
-                <span>
-                  {artwork.sizeCategory}
-                </span>
-              </div>
+              {artwork.year && (
+                <div className="flex justify-between gap-6">
+                  <span>Year</span>
+                  <span>{artwork.year}</span>
+                </div>
+              )}
+
+              {artwork.sizeCategory && (
+                <div className="flex justify-between gap-6">
+                  <span>Size</span>
+                  <span>{artwork.sizeCategory}</span>
+                </div>
+              )}
+
+              {artwork.medium && (
+                <div className="flex justify-between gap-6">
+                  <span>Medium</span>
+                  <span>{artwork.medium}</span>
+                </div>
+              )}
 
               {artwork.material && (
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-6">
                   <span>Material</span>
-                  <span>
-                    {artwork.material}
-                  </span>
+                  <span>{artwork.material}</span>
                 </div>
               )}
 
               {artwork.surface && (
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-6">
                   <span>Surface</span>
+                  <span>{artwork.surface}</span>
+                </div>
+              )}
+
+              {artwork.widthCm && artwork.heightCm && (
+                <div className="flex justify-between gap-6">
+                  <span>Dimensions</span>
                   <span>
-                    {artwork.surface}
+                    {artwork.widthCm} × {artwork.heightCm} cm
                   </span>
                 </div>
               )}
 
-              {artwork.widthCm &&
-                artwork.heightCm && (
-                  <div className="flex justify-between">
-                    <span>Dimensions</span>
-                    <span>
-                      {artwork.widthCm} ×{" "}
-                      {artwork.heightCm} cm
-                    </span>
-                  </div>
-                )}
-
-              {artwork.widthPx &&
-                artwork.heightPx && (
-                  <div className="flex justify-between">
-                    <span>Resolution</span>
-                    <span>
-                      {artwork.widthPx} ×{" "}
-                      {artwork.heightPx} px
-                    </span>
-                  </div>
-                )}
+              {artwork.widthPx && artwork.heightPx && (
+                <div className="flex justify-between gap-6">
+                  <span>Resolution</span>
+                  <span>
+                    {artwork.widthPx} × {artwork.heightPx} px
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* ACTION */}
-
             <div className="mt-10">
-              {artwork.type ===
-              "physical" ? (
+              {artwork.type === "physical" ? (
                 <button
                   className="
                     w-full

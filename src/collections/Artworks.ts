@@ -26,15 +26,13 @@ export const Artworks: CollectionConfig = {
     },
 
     {
-      name: "description",
+      name: "shortDescription",
       type: "textarea",
     },
 
     {
-      name: "images",
-      type: "relationship",
-      relationTo: "media",
-      hasMany: true,
+      name: "description",
+      type: "textarea",
     },
 
     {
@@ -46,6 +44,7 @@ export const Artworks: CollectionConfig = {
     {
       name: "type",
       type: "select",
+      required: true,
       options: [
         {
           label: "Physical",
@@ -56,7 +55,37 @@ export const Artworks: CollectionConfig = {
           value: "digital",
         },
       ],
-      required: true,
+    },
+
+    {
+      name: "gallery",
+      type: "array",
+      minRows: 1,
+      fields: [
+        {
+          name: "media",
+          type: "relationship",
+          relationTo: "media",
+          required: true,
+        },
+      ],
+    },
+
+    {
+      name: "videos",
+      type: "relationship",
+      relationTo: "media",
+      hasMany: true,
+    },
+
+    {
+      name: "digitalFile",
+      type: "relationship",
+      relationTo: "media",
+      admin: {
+        condition: (_, siblingData) =>
+          siblingData?.type === "digital",
+      },
     },
 
     {
@@ -66,8 +95,25 @@ export const Artworks: CollectionConfig = {
     },
 
     {
+      name: "currency",
+      type: "select",
+      defaultValue: "EUR",
+      options: [
+        {
+          label: "EUR",
+          value: "EUR",
+        },
+        {
+          label: "USD",
+          value: "USD",
+        },
+      ],
+    },
+
+    {
       name: "availability",
       type: "select",
+      defaultValue: "available",
       options: [
         {
           label: "Available",
@@ -78,7 +124,11 @@ export const Artworks: CollectionConfig = {
           value: "sold",
         },
       ],
-      defaultValue: "available",
+    },
+
+    {
+      name: "year",
+      type: "number",
     },
 
     {
@@ -154,6 +204,15 @@ export const Artworks: CollectionConfig = {
     },
 
     {
+      name: "medium",
+      type: "text",
+      admin: {
+        description:
+          "Example: Oil on Canvas",
+      },
+    },
+
+    {
       name: "widthCm",
       type: "number",
     },
@@ -174,9 +233,10 @@ export const Artworks: CollectionConfig = {
     },
 
     {
-      name: "category",
+      name: "categories",
       type: "relationship",
       relationTo: "categories",
+      hasMany: true,
     },
 
     {

@@ -1,20 +1,30 @@
+export type ArtworkMedia = {
+  id: string | number;
+  url: string;
+  alt: string;
+  mediaType?: "image" | "video";
+};
+
 export type Artwork = {
-  id: number;
+  id: string | number;
 
   title: string;
   slug: string;
 
-  description: string;
+  shortDescription?: string;
+  description?: string;
 
   image: string;
+  gallery: ArtworkMedia[];
+  videos?: ArtworkMedia[];
 
   type: "physical" | "digital";
 
   price: number;
-
-  currency: "EUR";
+  currency: "EUR" | "USD";
 
   category: string;
+  categories: string[];
 
   tags: string[];
 
@@ -22,24 +32,15 @@ export type Artwork = {
 
   year?: number;
 
-  orientation:
-    | "portrait"
-    | "landscape";
+  orientation?: "portrait" | "landscape";
 
-  sizeCategory:
-    | "small"
-    | "medium"
-    | "large";
+  sizeCategory?: "small" | "medium" | "large";
 
-  material?:
-    | "acrylic"
-    | "oil"
-    | "watercolor";
+  material?: "acrylic" | "oil" | "watercolor";
 
-  surface?:
-    | "canvas"
-    | "paper"
-    | "glass";
+  surface?: "canvas" | "paper" | "glass";
+
+  medium?: string;
 
   widthCm?: number;
   heightCm?: number;
@@ -47,7 +48,5 @@ export type Artwork = {
   widthPx?: number;
   heightPx?: number;
 
-  availability:
-    | "available"
-    | "sold";
+  availability?: "available" | "sold";
 };

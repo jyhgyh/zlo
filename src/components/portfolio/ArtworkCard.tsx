@@ -3,10 +3,12 @@ import { Artwork } from "@/types/artwork";
 
 type ArtworkCardProps = {
   artwork: Artwork;
+  locale?: string;
 };
 
 export default function ArtworkCard({
   artwork,
+  locale = "en",
 }: ArtworkCardProps) {
   const imageClass =
     artwork.orientation === "portrait"
@@ -15,7 +17,7 @@ export default function ArtworkCard({
 
   return (
     <Link
-      href={`/en/portfolio/${artwork.slug}`}
+      href={`/${locale}/portfolio/${artwork.slug}`}
       className="
         block
         overflow-hidden
@@ -25,14 +27,18 @@ export default function ArtworkCard({
         hover:shadow-lg
       "
     >
-      <div
-        className={`${imageClass} bg-gray-100`}
-      >
-        <img
-          src={artwork.image}
-          alt={artwork.title}
-          className="h-full w-full object-cover"
-        />
+      <div className={`${imageClass} bg-gray-100`}>
+        {artwork.image ? (
+          <img
+            src={artwork.image}
+            alt={artwork.title}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-gray-400">
+            Artwork Image
+          </div>
+        )}
       </div>
 
       <div className="space-y-2 p-4">
@@ -42,7 +48,8 @@ export default function ArtworkCard({
           </h2>
 
           <span className="text-sm">
-            €{artwork.price}
+            {artwork.currency === "USD" ? "$" : "€"}
+            {artwork.price}
           </span>
         </div>
 
@@ -50,22 +57,24 @@ export default function ArtworkCard({
           {artwork.category}
         </p>
 
-        <div className="flex flex-wrap gap-2">
-          {artwork.tags?.map((tag) => (
-            <span
-              key={tag}
-              className="
-                rounded-full
-                border
-                px-2
-                py-1
-                text-xs
-              "
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+        {artwork.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {artwork.tags.map((tag) => (
+              <span
+                key={tag}
+                className="
+                  rounded-full
+                  border
+                  px-2
+                  py-1
+                  text-xs
+                "
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </Link>
   );
