@@ -55,9 +55,7 @@ function normalizeTitleItems(items: unknown): string[] {
 }
 
 function normalizeArtwork(doc: Record<string, unknown>): Artwork {
-  const galleryRows = Array.isArray(doc.gallery)
-    ? doc.gallery
-    : [];
+  const galleryRows = Array.isArray(doc.gallery) ? doc.gallery : [];
 
   const gallery = galleryRows
     .map((row) => {
@@ -78,8 +76,6 @@ function normalizeArtwork(doc: Record<string, unknown>): Artwork {
   const categories = normalizeTitleItems(doc.categories);
   const tags = normalizeTitleItems(doc.tags);
 
-  const firstImage = gallery[0]?.url ?? "";
-
   return {
     id: String(doc.id),
 
@@ -96,24 +92,15 @@ function normalizeArtwork(doc: Record<string, unknown>): Artwork {
         ? doc.description
         : undefined,
 
-    image: firstImage,
+    image: gallery[0]?.url ?? "",
     gallery,
     videos,
 
-    type:
-      doc.type === "digital"
-        ? "digital"
-        : "physical",
+    type: doc.type === "digital" ? "digital" : "physical",
 
-    price:
-      typeof doc.price === "number"
-        ? doc.price
-        : 0,
+    price: typeof doc.price === "number" ? doc.price : 0,
 
-    currency:
-      doc.currency === "USD"
-        ? "USD"
-        : "EUR",
+    currency: doc.currency === "USD" ? "USD" : "EUR",
 
     category: categories[0] ?? "Uncategorized",
     categories,
@@ -125,14 +112,10 @@ function normalizeArtwork(doc: Record<string, unknown>): Artwork {
         ? doc.featured
         : false,
 
-    year:
-      typeof doc.year === "number"
-        ? doc.year
-        : undefined,
+    year: typeof doc.year === "number" ? doc.year : undefined,
 
     orientation:
-      doc.orientation === "portrait" ||
-      doc.orientation === "landscape"
+      doc.orientation === "portrait" || doc.orientation === "landscape"
         ? doc.orientation
         : undefined,
 
@@ -157,35 +140,15 @@ function normalizeArtwork(doc: Record<string, unknown>): Artwork {
         ? doc.surface
         : undefined,
 
-    medium:
-      typeof doc.medium === "string"
-        ? doc.medium
-        : undefined,
+    medium: typeof doc.medium === "string" ? doc.medium : undefined,
 
-    widthCm:
-      typeof doc.widthCm === "number"
-        ? doc.widthCm
-        : undefined,
+    widthCm: typeof doc.widthCm === "number" ? doc.widthCm : undefined,
+    heightCm: typeof doc.heightCm === "number" ? doc.heightCm : undefined,
 
-    heightCm:
-      typeof doc.heightCm === "number"
-        ? doc.heightCm
-        : undefined,
+    widthPx: typeof doc.widthPx === "number" ? doc.widthPx : undefined,
+    heightPx: typeof doc.heightPx === "number" ? doc.heightPx : undefined,
 
-    widthPx:
-      typeof doc.widthPx === "number"
-        ? doc.widthPx
-        : undefined,
-
-    heightPx:
-      typeof doc.heightPx === "number"
-        ? doc.heightPx
-        : undefined,
-
-    availability:
-      doc.availability === "sold"
-        ? "sold"
-        : "available",
+    availability: doc.availability === "sold" ? "sold" : "available",
   };
 }
 

@@ -1,11 +1,14 @@
 import Container from "@/components/layout/Container";
+import { getSiteSettings } from "@/lib/getSiteSettings";
 
-export default function ResumePage() {
+export default async function ResumePage() {
+  const settings = await getSiteSettings();
+
   return (
     <Container>
       <section className="py-20">
         <h1 className="mb-10 text-5xl font-bold">
-          Resume
+          {settings.resume.title}
         </h1>
 
         <div className="space-y-8">
@@ -15,8 +18,8 @@ export default function ResumePage() {
             </h2>
 
             <p className="text-gray-600">
-              Information about education will
-              appear here.
+              {settings.resume.education ||
+                "Information about education will appear here."}
             </p>
           </div>
 
@@ -26,8 +29,8 @@ export default function ResumePage() {
             </h2>
 
             <p className="text-gray-600">
-              Information about exhibitions,
-              projects and collaborations.
+              {settings.resume.experience ||
+                "Information about exhibitions, projects and collaborations."}
             </p>
           </div>
 
@@ -37,16 +40,27 @@ export default function ResumePage() {
             </h2>
 
             <p className="text-gray-600">
-              Awards, publications and notable
-              projects.
+              {settings.resume.achievements ||
+                "Awards, publications and notable projects."}
             </p>
           </div>
         </div>
 
         <div className="mt-10">
-          <button className="rounded-xl border px-6 py-3">
-            Download CV
-          </button>
+          {settings.resume.cvFile ? (
+            <a
+              href={settings.resume.cvFile.url}
+              className="inline-block rounded-xl border px-6 py-3"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Download CV
+            </a>
+          ) : (
+            <button className="rounded-xl border px-6 py-3">
+              Download CV
+            </button>
+          )}
         </div>
       </section>
     </Container>

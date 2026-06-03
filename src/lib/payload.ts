@@ -1,11 +1,9 @@
+// src/lib/payload.ts
 import { getPayload } from "payload";
 import config from "@payload-config";
 
-
 export async function getPayloadClient() {
-  const payload = await getPayload({
+  return getPayload({
     config,
   });
-
-  return payload;
 }
