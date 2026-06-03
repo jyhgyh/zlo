@@ -54,7 +54,9 @@ function normalizeTitleItems(items: unknown): string[] {
     .filter((item): item is string => Boolean(item));
 }
 
-function normalizeArtwork(doc: Record<string, unknown>): Artwork {
+export function normalizeArtwork(
+  doc: Record<string, unknown>
+): Artwork {
   const galleryRows = Array.isArray(doc.gallery) ? doc.gallery : [];
 
   const gallery = galleryRows
@@ -140,13 +142,30 @@ function normalizeArtwork(doc: Record<string, unknown>): Artwork {
         ? doc.surface
         : undefined,
 
-    medium: typeof doc.medium === "string" ? doc.medium : undefined,
+    medium:
+      typeof doc.medium === "string"
+        ? doc.medium
+        : undefined,
 
-    widthCm: typeof doc.widthCm === "number" ? doc.widthCm : undefined,
-    heightCm: typeof doc.heightCm === "number" ? doc.heightCm : undefined,
+    widthCm:
+      typeof doc.widthCm === "number"
+        ? doc.widthCm
+        : undefined,
 
-    widthPx: typeof doc.widthPx === "number" ? doc.widthPx : undefined,
-    heightPx: typeof doc.heightPx === "number" ? doc.heightPx : undefined,
+    heightCm:
+      typeof doc.heightCm === "number"
+        ? doc.heightCm
+        : undefined,
+
+    widthPx:
+      typeof doc.widthPx === "number"
+        ? doc.widthPx
+        : undefined,
+
+    heightPx:
+      typeof doc.heightPx === "number"
+        ? doc.heightPx
+        : undefined,
 
     availability: doc.availability === "sold" ? "sold" : "available",
   };

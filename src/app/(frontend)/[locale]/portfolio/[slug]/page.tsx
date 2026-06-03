@@ -1,6 +1,10 @@
 import Container from "@/components/layout/Container";
 import { getArtworkBySlug } from "@/lib/getArtworks";
+import { getCurrentUser } from "@/lib/currentUser";
+import { isArtworkFavorite } from "@/lib/favorites";
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { toggleFavorite } from "./actions";
 
 type Props = {
   params: Promise<{
@@ -12,12 +16,19 @@ type Props = {
 export default async function ArtworkPage({
   params,
 }: Props) {
-  const { slug } = await params;
+  const { locale, slug } = await params;
+
   const artwork = await getArtworkBySlug(slug);
 
   if (!artwork) {
     notFound();
   }
+
+  const user = await getCurrentUser();
+
+  const favorite = user
+    ? await isArtworkFavorite(user.id, artwork.id)
+    : false;
 
   const mainImage = artwork.gallery[0];
 
@@ -60,15 +71,7 @@ export default async function ArtworkPage({
 
           <div>
             <div className="mb-4">
-              <span
-                className="
-                  rounded-full
-                  border
-                  px-3
-                  py-1
-                  text-sm
-                "
-              >
+              <span className="rounded-full border px-3 py-1 text-sm">
                 {artwork.availability}
               </span>
             </div>
@@ -93,13 +96,7 @@ export default async function ArtworkPage({
                 {artwork.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="
-                      rounded-full
-                      border
-                      px-3
-                      py-1
-                      text-sm
-                    "
+                    className="rounded-full border px-3 py-1 text-sm"
                   >
                     {tag}
                   </span>
@@ -172,30 +169,55 @@ export default async function ArtworkPage({
               )}
             </div>
 
-            <div className="mt-10">
+            <div className="mt-10 space-y-3">
+              {user ? (
+                <form action={toggleFavorite}>
+                  <input
+                    type="hidden"
+                    name="locale"
+                    value={locale}
+                  />
+
+                  <input
+                    type="hidden"
+                    name="slug"
+                    value={artwork.slug}
+                  />
+
+                  <input
+                    type="hidden"
+                    name="artworkId"
+                    value={artwork.id}
+                  />
+
+                  <button
+                    type="submit"
+                    className="w-full rounded-xl border px-6 py-4 font-medium transition hover:bg-gray-100"
+                  >
+                    {favorite
+                      ? "Remove from favorites"
+                      : "Add to favorites"}
+                  </button>
+                </form>
+              ) : (
+                <Link
+                  href={`/${locale}/login`}
+                  className="block w-full rounded-xl border px-6 py-4 text-center font-medium transition hover:bg-gray-100"
+                >
+                  Login to add to favorites
+                </Link>
+              )}
+
               {artwork.type === "physical" ? (
-                <button
-                  className="
-                    w-full
-                    rounded-xl
-                    border
-                    px-6
-                    py-4
-                    font-medium
-                  "
+                <Link
+                  href={`/${locale}/contact`}
+                  className="block w-full rounded-xl border px-6 py-4 text-center font-medium transition hover:bg-gray-100"
                 >
                   Contact Artist
-                </button>
+                </Link>
               ) : (
                 <button
-                  className="
-                    w-full
-                    rounded-xl
-                    border
-                    px-6
-                    py-4
-                    font-medium
-                  "
+                  className="w-full rounded-xl border px-6 py-4 font-medium transition hover:bg-gray-100"
                 >
                   Add to Cart
                 </button>

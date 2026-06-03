@@ -1,7 +1,26 @@
 import Container from "@/components/layout/Container";
 import Link from "next/link";
+import LoginForm from "./LoginForm";
 
-export default function LoginPage() {
+type Props = {
+  params: Promise<{
+    locale: string;
+  }>;
+
+  searchParams: Promise<{
+    registered?: string;
+  }>;
+};
+
+export default async function LoginPage({
+  params,
+  searchParams,
+}: Props) {
+  const { locale } = await params;
+  const query = await searchParams;
+
+  const isRegistered = query.registered === "1";
+
   return (
     <Container>
       <section className="mx-auto max-w-md py-20">
@@ -9,30 +28,17 @@ export default function LoginPage() {
           Login
         </h1>
 
-        <form className="space-y-4">
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full rounded-xl border p-3"
-          />
+        {isRegistered && (
+          <div className="mb-6 rounded-xl border p-4 text-green-700">
+            Account created successfully. You can now log in.
+          </div>
+        )}
 
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full rounded-xl border p-3"
-          />
-
-          <button
-            type="submit"
-            className="w-full rounded-xl border px-6 py-3"
-          >
-            Login
-          </button>
-        </form>
+        <LoginForm locale={locale} />
 
         <div className="mt-6 text-center">
           <Link
-            href="/en/register"
+            href={`/${locale}/register`}
             className="text-gray-500 hover:underline"
           >
             Create account

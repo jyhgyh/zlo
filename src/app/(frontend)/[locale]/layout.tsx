@@ -1,16 +1,27 @@
-// src/app/'(frontend)'/'[locale]'/layout.tsx
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
+type Props = {
+  children: React.ReactNode;
+  params: Promise<{
+    locale: string;
+  }>;
+};
+
 export default async function LocaleLayout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+  params,
+}: Props) {
+  const { locale } = await params;
+
   return (
     <>
-      <Header />
-      <main className="flex-1">{children}</main>
+      <Header locale={locale} />
+
+      <main className="flex-1">
+        {children}
+      </main>
+
       <Footer />
     </>
   );
