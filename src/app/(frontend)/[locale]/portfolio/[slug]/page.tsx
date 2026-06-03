@@ -1,4 +1,5 @@
 import Container from "@/components/layout/Container";
+import AddToCartButton from "@/components/cart/AddToCartButton";
 import { getArtworkBySlug } from "@/lib/getArtworks";
 import { getCurrentUser } from "@/lib/currentUser";
 import { isArtworkFavorite } from "@/lib/favorites";
@@ -216,11 +217,10 @@ export default async function ArtworkPage({
                   Contact Artist
                 </Link>
               ) : (
-                <button
-                  className="w-full rounded-xl border px-6 py-4 font-medium transition hover:bg-gray-100"
-                >
-                  Add to Cart
-                </button>
+                <AddToCartButton
+                  artwork={artwork}
+                  locale={locale}
+                />
               )}
             </div>
           </div>

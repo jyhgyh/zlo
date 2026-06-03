@@ -41,6 +41,13 @@ export default async function Header({
           </nav>
 
           <div className="flex items-center gap-4">
+            <Link
+              href={`/${locale}/cart`}
+              className="rounded-lg border px-4 py-2"
+            >
+              Cart
+            </Link>
+
             {user ? (
               <Link
                 href={`/${locale}/account`}
