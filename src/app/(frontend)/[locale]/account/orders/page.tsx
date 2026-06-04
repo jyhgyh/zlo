@@ -103,6 +103,24 @@ export default async function OrdersPage({
                         <p className="text-sm text-gray-500">
                           {item.type}
                         </p>
+
+                        {item.type === "digital" && (
+                          <div className="mt-3">
+                            {order.paymentStatus === "paid" &&
+                            item.artworkId ? (
+                              <a
+                                href={`/${locale}/account/orders/download?orderId=${order.id}&artworkId=${item.artworkId}`}
+                                className="inline-block rounded-lg border px-4 py-2 text-sm transition hover:bg-gray-100"
+                              >
+                                Download
+                              </a>
+                            ) : (
+                              <p className="text-sm text-gray-500">
+                                Download available after payment.
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div>

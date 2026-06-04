@@ -2,6 +2,7 @@ import { getPayloadClient } from "@/lib/payload";
 
 export type OrderItem = {
   id?: string | number;
+  artworkId?: string | number;
   title: string;
   slug: string;
   image?: string;
@@ -24,6 +25,22 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+function getRelationId(value: unknown): string | number | undefined {
+  if (typeof value === "string" || typeof value === "number") {
+    return value;
+  }
+
+  if (isObject(value)) {
+    const id = value.id;
+
+    if (typeof id === "string" || typeof id === "number") {
+      return id;
+    }
+  }
+
+  return undefined;
+}
+
 function normalizeOrder(doc: Record<string, unknown>): UserOrder {
   const items = Array.isArray(doc.items)
     ? doc.items
@@ -34,24 +51,32 @@ function normalizeOrder(doc: Record<string, unknown>): UserOrder {
             typeof item.id === "number"
               ? item.id
               : undefined,
+
+          artworkId: getRelationId(item.artwork),
+
           title:
             typeof item.title === "string"
               ? item.title
               : "Untitled artwork",
+
           slug:
             typeof item.slug === "string"
               ? item.slug
               : "",
+
           image:
             typeof item.image === "string"
               ? item.image
               : undefined,
+
           price:
             typeof item.price === "number"
               ? item.price
               : 0,
+
           currency:
             item.currency === "USD" ? "USD" : "EUR",
+
           type:
             item.type === "physical"
               ? "physical"
@@ -61,23 +86,29 @@ function normalizeOrder(doc: Record<string, unknown>): UserOrder {
 
   return {
     id: String(doc.id),
+
     items,
+
     total:
       typeof doc.total === "number"
         ? doc.total
         : 0,
+
     currency:
       doc.currency === "USD" ? "USD" : "EUR",
+
     status:
       doc.status === "completed" ||
       doc.status === "cancelled"
         ? doc.status
         : "pending",
+
     paymentStatus:
       doc.paymentStatus === "paid" ||
       doc.paymentStatus === "refunded"
         ? doc.paymentStatus
         : "unpaid",
+
     createdAt:
       typeof doc.createdAt === "string"
         ? doc.createdAt
@@ -92,7 +123,7 @@ export async function getOrdersByUser(
 
   const result = await payload.find({
     collection: "orders" as never,
-    depth: 1,
+    depth: 2,
     limit: 100,
     sort: "-createdAt",
     where: {
