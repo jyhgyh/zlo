@@ -10,6 +10,7 @@ import { Categories } from "./collections/Categories.ts";
 import { Tags } from "./collections/Tags.ts";
 import { Artworks } from "./collections/Artworks.ts";
 import { ContactMessages } from "./collections/ContactMessages.ts";
+import { Orders } from "./collections/Orders.ts";
 import { SiteSettings } from "./globals/SiteSettings.ts";
 
 const filename = fileURLToPath(import.meta.url);
@@ -30,6 +31,7 @@ export default buildConfig({
     Tags,
     Artworks,
     ContactMessages,
+    Orders,
   ],
 
   globals: [

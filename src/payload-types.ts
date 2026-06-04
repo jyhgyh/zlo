@@ -73,6 +73,7 @@ export interface Config {
     tags: Tag;
     artworks: Artwork;
     'contact-messages': ContactMessage;
+    orders: Order;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -86,6 +87,7 @@ export interface Config {
     tags: TagsSelect<false> | TagsSelect<true>;
     artworks: ArtworksSelect<false> | ArtworksSelect<true>;
     'contact-messages': ContactMessagesSelect<false> | ContactMessagesSelect<true>;
+    orders: OrdersSelect<false> | OrdersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -258,6 +260,33 @@ export interface ContactMessage {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders".
+ */
+export interface Order {
+  id: number;
+  user: number | User;
+  items: {
+    artwork: number | Artwork;
+    title: string;
+    slug: string;
+    image?: string | null;
+    price: number;
+    currency?: ('EUR' | 'USD') | null;
+    type?: ('digital' | 'physical') | null;
+    id?: string | null;
+  }[];
+  total: number;
+  currency?: ('EUR' | 'USD') | null;
+  status?: ('pending' | 'completed' | 'cancelled') | null;
+  paymentStatus?: ('unpaid' | 'paid' | 'refunded') | null;
+  customerName: string;
+  customerEmail: string;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -303,6 +332,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'contact-messages';
         value: number | ContactMessage;
+      } | null)
+    | ({
+        relationTo: 'orders';
+        value: number | Order;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -459,6 +492,34 @@ export interface ContactMessagesSelect<T extends boolean = true> {
   subject?: T;
   message?: T;
   status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders_select".
+ */
+export interface OrdersSelect<T extends boolean = true> {
+  user?: T;
+  items?:
+    | T
+    | {
+        artwork?: T;
+        title?: T;
+        slug?: T;
+        image?: T;
+        price?: T;
+        currency?: T;
+        type?: T;
+        id?: T;
+      };
+  total?: T;
+  currency?: T;
+  status?: T;
+  paymentStatus?: T;
+  customerName?: T;
+  customerEmail?: T;
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }

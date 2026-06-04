@@ -149,12 +149,12 @@ export default function CartClient({
           </span>
         </div>
 
-        <button
-          type="button"
-          className="mt-6 w-full rounded-xl border px-6 py-3 font-medium transition hover:bg-gray-100"
+        <Link
+          href={`/${locale}/checkout`}
+          className="mt-6 block w-full rounded-xl border px-6 py-3 text-center font-medium transition hover:bg-gray-100"
         >
           Checkout
-        </button>
+        </Link>
 
         <button
           type="button"
