@@ -279,6 +279,8 @@ export interface Order {
   currency?: ('EUR' | 'USD') | null;
   status?: ('pending' | 'completed' | 'cancelled') | null;
   paymentStatus?: ('unpaid' | 'paid' | 'refunded') | null;
+  stripeSessionId?: string | null;
+  stripePaymentIntentId?: string | null;
   customerName: string;
   customerEmail: string;
   notes?: string | null;
@@ -517,6 +519,8 @@ export interface OrdersSelect<T extends boolean = true> {
   currency?: T;
   status?: T;
   paymentStatus?: T;
+  stripeSessionId?: T;
+  stripePaymentIntentId?: T;
   customerName?: T;
   customerEmail?: T;
   notes?: T;

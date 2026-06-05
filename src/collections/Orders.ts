@@ -179,6 +179,22 @@ export const Orders: CollectionConfig = {
     },
 
     {
+      name: "stripeSessionId",
+      type: "text",
+      admin: {
+        readOnly: true,
+      },
+    },
+
+    {
+      name: "stripePaymentIntentId",
+      type: "text",
+      admin: {
+        readOnly: true,
+      },
+    },
+
+    {
       name: "customerName",
       type: "text",
       required: true,

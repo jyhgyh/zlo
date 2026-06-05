@@ -60,9 +60,7 @@ function normalizeOrder(doc: Record<string, unknown>): UserOrder {
               : "Untitled artwork",
 
           slug:
-            typeof item.slug === "string"
-              ? item.slug
-              : "",
+            typeof item.slug === "string" ? item.slug : "",
 
           image:
             typeof item.image === "string"
@@ -70,12 +68,9 @@ function normalizeOrder(doc: Record<string, unknown>): UserOrder {
               : undefined,
 
           price:
-            typeof item.price === "number"
-              ? item.price
-              : 0,
+            typeof item.price === "number" ? item.price : 0,
 
-          currency:
-            item.currency === "USD" ? "USD" : "EUR",
+          currency: item.currency === "USD" ? "USD" : "EUR",
 
           type:
             item.type === "physical"
@@ -89,13 +84,9 @@ function normalizeOrder(doc: Record<string, unknown>): UserOrder {
 
     items,
 
-    total:
-      typeof doc.total === "number"
-        ? doc.total
-        : 0,
+    total: typeof doc.total === "number" ? doc.total : 0,
 
-    currency:
-      doc.currency === "USD" ? "USD" : "EUR",
+    currency: doc.currency === "USD" ? "USD" : "EUR",
 
     status:
       doc.status === "completed" ||
@@ -137,4 +128,51 @@ export async function getOrdersByUser(
   return result.docs.map((doc) =>
     normalizeOrder(doc as Record<string, unknown>)
   );
+}
+
+export async function getPaidArtworkIdsByUser(
+  userId: string | number
+): Promise<string[]> {
+  const orders = await getOrdersByUser(userId);
+
+  return orders
+    .filter((order) => order.paymentStatus === "paid")
+    .flatMap((order) => order.items)
+    .filter((item) => item.type === "digital")
+    .map((item) => item.artworkId)
+    .filter(
+      (id): id is string | number =>
+        typeof id === "string" || typeof id === "number"
+    )
+    .map((id) => String(id));
+}
+
+export async function hasUserPurchasedArtwork(
+  userId: string | number,
+  artworkId: string | number
+): Promise<boolean> {
+  const paidArtworkIds = await getPaidArtworkIdsByUser(userId);
+
+  return paidArtworkIds.includes(String(artworkId));
+}
+
+export async function getPaidOrderIdForArtwork(
+  userId: string | number,
+  artworkId: string | number
+): Promise<string | null> {
+  const orders = await getOrdersByUser(userId);
+
+  const paidOrder = orders.find((order) => {
+    if (order.paymentStatus !== "paid") {
+      return false;
+    }
+
+    return order.items.some(
+      (item) =>
+        item.type === "digital" &&
+        String(item.artworkId) === String(artworkId)
+    );
+  });
+
+  return paidOrder ? String(paidOrder.id) : null;
 }

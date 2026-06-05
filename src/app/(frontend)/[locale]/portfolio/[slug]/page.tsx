@@ -3,6 +3,10 @@ import AddToCartButton from "@/components/cart/AddToCartButton";
 import { getArtworkBySlug } from "@/lib/getArtworks";
 import { getCurrentUser } from "@/lib/currentUser";
 import { isArtworkFavorite } from "@/lib/favorites";
+import {
+  getPaidOrderIdForArtwork,
+  hasUserPurchasedArtwork,
+} from "@/lib/orders";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { toggleFavorite } from "./actions";
@@ -30,6 +34,16 @@ export default async function ArtworkPage({
   const favorite = user
     ? await isArtworkFavorite(user.id, artwork.id)
     : false;
+
+  const alreadyPurchased =
+    user && artwork.type === "digital"
+      ? await hasUserPurchasedArtwork(user.id, artwork.id)
+      : false;
+
+  const paidOrderId =
+    user && artwork.type === "digital"
+      ? await getPaidOrderIdForArtwork(user.id, artwork.id)
+      : null;
 
   const mainImage = artwork.gallery[0];
 
@@ -216,6 +230,26 @@ export default async function ArtworkPage({
                 >
                   Contact Artist
                 </Link>
+              ) : alreadyPurchased && paidOrderId ? (
+                <div className="space-y-3">
+                  <div className="rounded-xl border p-4 text-center text-green-700">
+                    You already purchased this artwork.
+                  </div>
+
+                  <a
+                    href={`/${locale}/account/orders/download?orderId=${paidOrderId}&artworkId=${artwork.id}`}
+                    className="block w-full rounded-xl border px-6 py-4 text-center font-medium transition hover:bg-gray-100"
+                  >
+                    Download
+                  </a>
+
+                  <Link
+                    href={`/${locale}/account/orders`}
+                    className="block w-full rounded-xl border px-6 py-4 text-center font-medium transition hover:bg-gray-100"
+                  >
+                    View Orders
+                  </Link>
+                </div>
               ) : (
                 <AddToCartButton
                   artwork={artwork}

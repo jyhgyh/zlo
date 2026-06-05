@@ -25,12 +25,12 @@ export default async function CheckoutSuccessPage({
 
       <section className="mx-auto max-w-2xl py-20 text-center">
         <h1 className="text-4xl font-bold">
-          Order created
+          Payment successful
         </h1>
 
         <p className="mt-4 text-gray-600">
-          Your order has been created successfully.
-          Payment integration will be added in the next step.
+          Thank you for your purchase. Your order has been created
+          and your digital download will be available in your account.
         </p>
 
         {query.order && (

@@ -3,10 +3,22 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getPayloadClient } from "@/lib/payload";
+import { stripe } from "@/lib/stripe";
+import { getPaidArtworkIdsByUser } from "@/lib/orders";
 
 type RawCartItem = {
   id?: string;
   image?: string;
+};
+
+type OrderItem = {
+  artwork: string | number;
+  title: string;
+  slug: string;
+  image: string;
+  price: number;
+  currency: "EUR" | "USD";
+  type: "digital";
 };
 
 function getFormValue(formData: FormData, key: string) {
@@ -67,6 +79,18 @@ function getFirstImageFromArtwork(doc: Record<string, unknown>) {
   return "";
 }
 
+function getBaseUrl() {
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL;
+  }
+
+  return "http://localhost:3000";
+}
+
+function toStripeAmount(price: number) {
+  return Math.round(price * 100);
+}
+
 export async function createOrder(formData: FormData) {
   const locale = getFormValue(formData, "locale") || "en";
   const cartJson = getFormValue(formData, "cart");
@@ -93,10 +117,16 @@ export async function createOrder(formData: FormData) {
 
   const payload = await getPayloadClient();
 
-  const orderItems = [];
+  const alreadyPurchasedIds = await getPaidArtworkIdsByUser(user.id);
+
+  const orderItems: OrderItem[] = [];
 
   for (const item of rawCartItems) {
     if (!item.id) {
+      continue;
+    }
+
+    if (alreadyPurchasedIds.includes(String(item.id))) {
       continue;
     }
 
@@ -121,6 +151,10 @@ export async function createOrder(formData: FormData) {
       const currency =
         artworkData.currency === "USD" ? "USD" : "EUR";
 
+      if (price <= 0) {
+        continue;
+      }
+
       orderItems.push({
         artwork: toPayloadId(item.id),
         title: String(artworkData.title ?? "Untitled artwork"),
@@ -136,7 +170,7 @@ export async function createOrder(formData: FormData) {
   }
 
   if (orderItems.length === 0) {
-    redirect(`/${locale}/checkout?error=invalid-cart`);
+    redirect(`/${locale}/checkout?error=already-purchased`);
   }
 
   const currency = orderItems[0].currency;
@@ -177,5 +211,56 @@ export async function createOrder(formData: FormData) {
       ? String(order.id)
       : "";
 
-  redirect(`/${locale}/checkout/success?order=${orderId}`);
+  if (!orderId) {
+    redirect(`/${locale}/checkout?error=create-failed`);
+  }
+
+  const baseUrl = getBaseUrl();
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+
+    customer_email: customerEmail,
+
+    line_items: orderItems.map((item) => ({
+      quantity: 1,
+      price_data: {
+        currency: item.currency.toLowerCase(),
+        unit_amount: toStripeAmount(item.price),
+        product_data: {
+          name: item.title,
+        },
+      },
+    })),
+
+    success_url: `${baseUrl}/${locale}/checkout/success?order=${orderId}`,
+    cancel_url: `${baseUrl}/${locale}/checkout?cancelled=1`,
+
+    metadata: {
+      orderId,
+      userId: String(user.id),
+    },
+
+    payment_intent_data: {
+      metadata: {
+        orderId,
+        userId: String(user.id),
+      },
+    },
+  });
+
+  await payload.update({
+    collection: "orders" as never,
+    id: toPayloadId(orderId),
+    data: {
+      stripeSessionId: session.id,
+    },
+    overrideAccess: true,
+  });
+
+  if (!session.url) {
+    redirect(`/${locale}/checkout?error=stripe-session`);
+  }
+
+  redirect(session.url);
 }

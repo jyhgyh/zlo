@@ -1,6 +1,5 @@
 import Container from "@/components/layout/Container";
-// import CheckoutClient from "@/components/cart/CheckoutClient";
-import CheckoutClient from "../cart/CheckoutClient";
+import CheckoutClient from "@/components/cart/CheckoutClient";
 import { getCurrentUser } from "@/lib/currentUser";
 import { redirect } from "next/navigation";
 
@@ -11,6 +10,7 @@ type Props = {
 
   searchParams: Promise<{
     error?: string;
+    cancelled?: string;
   }>;
 };
 
@@ -36,7 +36,7 @@ export default async function CheckoutPage({
           </h1>
 
           <p className="mt-2 text-gray-500">
-            Confirm your order details.
+            Confirm your order details and proceed to payment.
           </p>
         </div>
 
@@ -45,6 +45,7 @@ export default async function CheckoutPage({
           userEmail={user.email}
           userName={user.name}
           error={query.error}
+          cancelled={query.cancelled}
         />
       </section>
     </Container>

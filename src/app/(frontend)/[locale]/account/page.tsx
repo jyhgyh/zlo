@@ -61,6 +61,13 @@ export default async function AccountPage({
               >
                 Orders
               </Link>
+
+              <Link
+                href={`/${locale}/account/downloads`}
+                className="block rounded-lg border px-4 py-2"
+              >
+                Downloads
+              </Link>
             </nav>
           </aside>
 
