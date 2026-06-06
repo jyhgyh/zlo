@@ -8,6 +8,7 @@ export type UserDownload = {
   image?: string;
   price: number;
   currency: "EUR" | "USD";
+  type: "digital" | "physical";
   purchasedAt?: string;
 };
 
@@ -46,6 +47,7 @@ export async function getDownloadsByUser(
         image: item.image,
         price: item.price,
         currency: item.currency,
+        type: item.type,
         purchasedAt: order.createdAt,
       });
     }

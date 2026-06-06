@@ -1,7 +1,5 @@
-import Container from "@/components/layout/Container";
-import LogoutButton from "@/components/layout/LogoutButton";
+import AccountLayout from "@/components/account/AccountLayout";
 import { getCurrentUser } from "@/lib/currentUser";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 type Props = {
@@ -22,94 +20,48 @@ export default async function AccountPage({
   }
 
   return (
-    <Container>
-      <section className="py-20">
-        <div className="mb-10 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold">
-              Account
-            </h1>
+    <AccountLayout
+      locale={locale}
+      title="Account"
+      description="Manage your profile, favorites and purchases."
+    >
+      <div className="rounded-xl border p-6">
+        <h2 className="mb-6 text-2xl font-semibold">
+          Profile
+        </h2>
 
-            <p className="mt-2 text-gray-500">
-              Manage your profile, favorites and purchases.
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm text-gray-500">
+              Name
+            </p>
+
+            <p>
+              {user.name || "Not provided"}
             </p>
           </div>
 
-          <LogoutButton locale={locale} />
-        </div>
+          <div>
+            <p className="text-sm text-gray-500">
+              Email
+            </p>
 
-        <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
-          <aside className="h-fit rounded-xl border p-5">
-            <nav className="space-y-3">
-              <Link
-                href={`/${locale}/account`}
-                className="block rounded-lg border px-4 py-2"
-              >
-                Profile
-              </Link>
+            <p>
+              {user.email || "Not provided"}
+            </p>
+          </div>
 
-              <Link
-                href={`/${locale}/account/favorites`}
-                className="block rounded-lg border px-4 py-2"
-              >
-                Favorites
-              </Link>
+          <div>
+            <p className="text-sm text-gray-500">
+              Role
+            </p>
 
-              <Link
-                href={`/${locale}/account/orders`}
-                className="block rounded-lg border px-4 py-2"
-              >
-                Orders
-              </Link>
-
-              <Link
-                href={`/${locale}/account/downloads`}
-                className="block rounded-lg border px-4 py-2"
-              >
-                Downloads
-              </Link>
-            </nav>
-          </aside>
-
-          <div className="rounded-xl border p-6">
-            <h2 className="mb-6 text-2xl font-semibold">
-              Profile
-            </h2>
-
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-gray-500">
-                  Name
-                </p>
-
-                <p>
-                  {user.name || "Not provided"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">
-                  Email
-                </p>
-
-                <p>
-                  {user.email || "Not provided"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">
-                  Role
-                </p>
-
-                <p>
-                  {user.role || "user"}
-                </p>
-              </div>
-            </div>
+            <p>
+              {user.role || "user"}
+            </p>
           </div>
         </div>
-      </section>
-    </Container>
+      </div>
+    </AccountLayout>
   );
 }

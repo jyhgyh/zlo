@@ -220,6 +220,8 @@ export async function createOrder(formData: FormData) {
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
 
+    payment_method_types: ["card"],
+
     customer_email: customerEmail,
 
     line_items: orderItems.map((item) => ({
