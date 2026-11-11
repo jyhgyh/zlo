@@ -7,12 +7,12 @@ import { stripe } from "@/lib/stripe";
 import { getPaidArtworkIdsByUser } from "@/lib/orders";
 
 type RawCartItem = {
-  id?: string;
+  id?: string | number;
   image?: string;
 };
 
 type OrderItem = {
-  artwork: string | number;
+  artwork: number;
   title: string;
   slug: string;
   image: string;
@@ -23,33 +23,29 @@ type OrderItem = {
 
 function getFormValue(formData: FormData, key: string) {
   const value = formData.get(key);
-
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim();
+  return typeof value === "string" ? value.trim() : "";
 }
 
-function toPayloadId(value: string): string | number {
+function numericId(value: string | number): number | null {
   const numberValue = Number(value);
-
-  if (!Number.isNaN(numberValue) && value !== "") {
-    return numberValue;
-  }
-
-  return value;
+  return Number.isSafeInteger(numberValue) && numberValue > 0
+    ? numberValue
+    : null;
 }
 
 function parseCartItems(value: string): RawCartItem[] {
   try {
-    const parsed = JSON.parse(value);
-
+    const parsed: unknown = JSON.parse(value);
     if (!Array.isArray(parsed)) {
       return [];
     }
-
-    return parsed;
+    return parsed.filter(
+      (item): item is RawCartItem =>
+        typeof item === "object" &&
+        item !== null &&
+        (typeof item.id === "string" || typeof item.id === "number") &&
+        (item.image === undefined || typeof item.image === "string")
+    );
   } catch {
     return [];
   }
@@ -59,13 +55,8 @@ function getFirstImageFromArtwork(doc: Record<string, unknown>) {
   const gallery = Array.isArray(doc.gallery) ? doc.gallery : [];
   const first = gallery[0];
 
-  if (
-    typeof first === "object" &&
-    first !== null &&
-    "media" in first
-  ) {
+  if (typeof first === "object" && first !== null && "media" in first) {
     const media = first.media;
-
     if (
       typeof media === "object" &&
       media !== null &&
@@ -80,11 +71,7 @@ function getFirstImageFromArtwork(doc: Record<string, unknown>) {
 }
 
 function getBaseUrl() {
-  if (process.env.NEXT_PUBLIC_SITE_URL) {
-    return process.env.NEXT_PUBLIC_SITE_URL;
-  }
-
-  return "http://localhost:3000";
+  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 }
 
 function toStripeAmount(price: number) {
@@ -94,19 +81,21 @@ function toStripeAmount(price: number) {
 export async function createOrder(formData: FormData) {
   const locale = getFormValue(formData, "locale") || "en";
   const cartJson = getFormValue(formData, "cart");
-
   const customerName = getFormValue(formData, "customerName");
   const customerEmail = getFormValue(formData, "customerEmail");
   const notes = getFormValue(formData, "notes");
 
   const user = await getCurrentUser();
-
   if (!user) {
     redirect(`/${locale}/login`);
   }
 
-  const rawCartItems = parseCartItems(cartJson);
+  const userId = numericId(user.id);
+  if (userId === null) {
+    throw new Error("Invalid user ID");
+  }
 
+  const rawCartItems = parseCartItems(cartJson);
   if (rawCartItems.length === 0) {
     redirect(`/${locale}/checkout?error=empty-cart`);
   }
@@ -116,47 +105,47 @@ export async function createOrder(formData: FormData) {
   }
 
   const payload = await getPayloadClient();
-
-  const alreadyPurchasedIds = await getPaidArtworkIdsByUser(user.id);
-
+  const alreadyPurchasedIds = await getPaidArtworkIdsByUser(userId);
   const orderItems: OrderItem[] = [];
+  const seen = new Set<number>();
 
   for (const item of rawCartItems) {
     if (!item.id) {
       continue;
     }
 
-    if (alreadyPurchasedIds.includes(String(item.id))) {
+    const artworkId = numericId(item.id);
+    if (
+      artworkId === null ||
+      seen.has(artworkId) ||
+      alreadyPurchasedIds.includes(String(artworkId))
+    ) {
       continue;
     }
+    seen.add(artworkId);
 
     try {
       const artwork = await payload.findByID({
-        collection: "artworks" as never,
-        id: toPayloadId(item.id),
+        collection: "artworks",
+        id: artworkId,
         depth: 2,
       });
 
-      const artworkData = artwork as Record<string, unknown>;
-
+      const artworkData = artwork as unknown as Record<string, unknown>;
       if (artworkData.type !== "digital") {
         continue;
       }
 
       const price =
-        typeof artworkData.price === "number"
-          ? artworkData.price
-          : 0;
+        typeof artworkData.price === "number" ? artworkData.price : 0;
+      const currency = artworkData.currency === "USD" ? "USD" : "EUR";
 
-      const currency =
-        artworkData.currency === "USD" ? "USD" : "EUR";
-
-      if (price <= 0) {
+      if (!Number.isFinite(price) || price <= 0) {
         continue;
       }
 
       orderItems.push({
-        artwork: toPayloadId(item.id),
+        artwork: artworkId,
         title: String(artworkData.title ?? "Untitled artwork"),
         slug: String(artworkData.slug ?? ""),
         image: item.image || getFirstImageFromArtwork(artworkData),
@@ -174,24 +163,15 @@ export async function createOrder(formData: FormData) {
   }
 
   const currency = orderItems[0].currency;
-
-  const hasMixedCurrency = orderItems.some(
-    (item) => item.currency !== currency
-  );
-
-  if (hasMixedCurrency) {
+  if (orderItems.some((item) => item.currency !== currency)) {
     redirect(`/${locale}/checkout?error=mixed-currency`);
   }
 
-  const total = orderItems.reduce(
-    (sum, item) => sum + item.price,
-    0
-  );
-
+  const total = orderItems.reduce((sum, item) => sum + item.price, 0);
   const order = await payload.create({
-    collection: "orders" as never,
+    collection: "orders",
     data: {
-      user: user.id,
+      user: userId,
       items: orderItems,
       total,
       currency,
@@ -204,59 +184,33 @@ export async function createOrder(formData: FormData) {
     overrideAccess: true,
   });
 
-  const orderId =
-    typeof order === "object" &&
-    order !== null &&
-    "id" in order
-      ? String(order.id)
-      : "";
-
-  if (!orderId) {
-    redirect(`/${locale}/checkout?error=create-failed`);
-  }
-
+  const orderId = String(order.id);
   const baseUrl = getBaseUrl();
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
-
     payment_method_types: ["card"],
-
     customer_email: customerEmail,
-
     line_items: orderItems.map((item) => ({
       quantity: 1,
       price_data: {
         currency: item.currency.toLowerCase(),
         unit_amount: toStripeAmount(item.price),
-        product_data: {
-          name: item.title,
-        },
+        product_data: { name: item.title },
       },
     })),
-
     success_url: `${baseUrl}/${locale}/checkout/success?order=${orderId}`,
     cancel_url: `${baseUrl}/${locale}/checkout?cancelled=1`,
-
-    metadata: {
-      orderId,
-      userId: String(user.id),
-    },
-
+    metadata: { orderId, userId: String(userId) },
     payment_intent_data: {
-      metadata: {
-        orderId,
-        userId: String(user.id),
-      },
+      metadata: { orderId, userId: String(userId) },
     },
   });
 
   await payload.update({
-    collection: "orders" as never,
-    id: toPayloadId(orderId),
-    data: {
-      stripeSessionId: session.id,
-    },
+    collection: "orders",
+    id: order.id,
+    data: { stripeSessionId: session.id },
     overrideAccess: true,
   });
 

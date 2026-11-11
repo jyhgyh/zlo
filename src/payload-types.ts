@@ -168,6 +168,10 @@ export interface Media {
   id: number;
   alt: string;
   mediaType?: ('image' | 'video') | null;
+  /**
+   * Enable for paid digital originals. Public gallery images and preview videos must remain unchecked.
+   */
+  isProtected?: boolean | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -414,6 +418,7 @@ export interface UsersSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   mediaType?: T;
+  isProtected?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

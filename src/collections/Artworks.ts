@@ -1,10 +1,70 @@
 import type { CollectionConfig } from "payload";
 
+function getRelationId(value: unknown): string | number | null {
+  if (typeof value === "string" || typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "object" && value !== null && "id" in value) {
+    const id = value.id;
+    if (typeof id === "string" || typeof id === "number") {
+      return id;
+    }
+  }
+
+  return null;
+}
+
 export const Artworks: CollectionConfig = {
   slug: "artworks",
 
   access: {
     read: () => true,
+    create: ({ req }) => req.user?.role === "admin",
+    update: ({ req }) => req.user?.role === "admin",
+    delete: ({ req }) => req.user?.role === "admin",
+  },
+
+  hooks: {
+    beforeChange: [
+      async ({ data, originalDoc, req }) => {
+        const nextType = data.type ?? originalDoc?.type;
+        const digitalFileId = getRelationId(
+          data.digitalFile ?? originalDoc?.digitalFile
+        );
+
+        if (nextType !== "digital" || digitalFileId === null) {
+          return data;
+        }
+
+        // Protect the original before saving an artwork that references it.
+        // No public URL should serve this upload after the artwork is saved.
+        const media = await req.payload.findByID({
+          collection: "media",
+          id: digitalFileId,
+          depth: 0,
+          overrideAccess: true,
+          req,
+        });
+
+        if (!media) {
+          throw new Error("Digital original was not found in Media.");
+        }
+
+        if (!media.isProtected) {
+          await req.payload.update({
+            collection: "media",
+            id: digitalFileId,
+            data: { isProtected: true },
+            depth: 0,
+            overrideAccess: true,
+            req,
+          });
+        }
+
+        return data;
+      },
+    ],
   },
 
   admin: {
@@ -82,6 +142,9 @@ export const Artworks: CollectionConfig = {
       name: "digitalFile",
       type: "relationship",
       relationTo: "media",
+      access: {
+        read: ({ req }) => req.user?.role === "admin",
+      },
       admin: {
         condition: (_, siblingData) =>
           siblingData?.type === "digital",

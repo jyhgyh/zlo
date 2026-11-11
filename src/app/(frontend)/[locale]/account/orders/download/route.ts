@@ -1,14 +1,18 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { getCurrentUser } from "@/lib/currentUser";
 import { getPayloadClient } from "@/lib/payload";
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
 type RouteContext = {
-  params: Promise<{
-    locale: string;
-  }>;
+  params: Promise<{ locale: string }>;
 };
 
-function isObject(value: unknown): value is Record<string, unknown> {
+type Dictionary = Record<string, unknown>;
+
+function isObject(value: unknown): value is Dictionary {
   return typeof value === "object" && value !== null;
 }
 
@@ -19,7 +23,6 @@ function getRelationId(value: unknown): string {
 
   if (isObject(value)) {
     const id = value.id;
-
     if (typeof id === "string" || typeof id === "number") {
       return String(id);
     }
@@ -28,53 +31,59 @@ function getRelationId(value: unknown): string {
   return "";
 }
 
-function getMediaUrl(value: unknown): string {
-  if (!isObject(value)) {
-    return "";
-  }
-
-  const url = value.url;
-
-  if (typeof url !== "string") {
-    return "";
-  }
-
-  return url;
-}
-
 function toPayloadId(value: string): string | number {
   const numberValue = Number(value);
-
-  if (!Number.isNaN(numberValue) && value.trim() !== "") {
-    return numberValue;
-  }
-
-  return value;
+  return Number.isSafeInteger(numberValue) && value.trim() !== ""
+    ? numberValue
+    : value;
 }
 
-async function getDigitalFileUrl(digitalFile: unknown) {
-  const directUrl = getMediaUrl(digitalFile);
+function denied() {
+  return NextResponse.json(
+    { error: "Download not available" },
+    { status: 404, headers: { "Cache-Control": "no-store" } }
+  );
+}
 
-  if (directUrl) {
-    return directUrl;
+async function readLocalUpload(filename: string, staticDir?: string) {
+  // The existing project uses local Payload uploads in media/.
+  // Do not use a client-supplied path or URL.
+  const candidates = new Set<string>();
+
+  if (staticDir) {
+    if (path.isAbsolute(staticDir)) {
+      candidates.add(staticDir);
+    } else {
+      candidates.add(path.resolve(process.cwd(), staticDir));
+      candidates.add(path.resolve(process.cwd(), "src", staticDir));
+    }
   }
 
-  const mediaId = getRelationId(digitalFile);
+  candidates.add(path.resolve(process.cwd(), "media"));
+  candidates.add(path.resolve(process.cwd(), "src", "media"));
 
-  if (!mediaId) {
-    return "";
+  for (const directory of candidates) {
+    const fullPath = path.resolve(directory, filename);
+
+    if (path.dirname(fullPath) !== path.resolve(directory)) {
+      continue;
+    }
+
+    try {
+      return await readFile(fullPath);
+    } catch (error) {
+      if (
+        isObject(error) &&
+        "code" in error &&
+        error.code === "ENOENT"
+      ) {
+        continue;
+      }
+      throw error;
+    }
   }
 
-  const payload = await getPayloadClient();
-
-  const media = await payload.findByID({
-    collection: "media" as never,
-    id: toPayloadId(mediaId),
-    depth: 0,
-    overrideAccess: true,
-  });
-
-  return getMediaUrl(media);
+  return null;
 }
 
 export async function GET(
@@ -82,7 +91,6 @@ export async function GET(
   { params }: RouteContext
 ) {
   const { locale } = await params;
-
   const user = await getCurrentUser();
 
   if (!user) {
@@ -91,89 +99,150 @@ export async function GET(
     );
   }
 
-  const searchParams = request.nextUrl.searchParams;
-
-  const orderId = searchParams.get("orderId");
-  const artworkId = searchParams.get("artworkId");
+  const orderId = request.nextUrl.searchParams.get("orderId");
+  const artworkId = request.nextUrl.searchParams.get("artworkId");
 
   if (!orderId || !artworkId) {
-    return NextResponse.redirect(
-      new URL(`/${locale}/account/orders`, request.url)
-    );
+    return denied();
   }
 
   const payload = await getPayloadClient();
+  let order: Dictionary;
 
-  const order = await payload.findByID({
-    collection: "orders" as never,
-    id: toPayloadId(orderId),
-    depth: 3,
-    overrideAccess: true,
-  });
+  try {
+    const result = await payload.findByID({
+      collection: "orders",
+      id: toPayloadId(orderId),
+      depth: 0,
+      overrideAccess: true,
+    });
+    order = result as unknown as Dictionary;
+  } catch {
+    return denied();
+  }
 
-  const orderData = order as Record<string, unknown>;
-
-  const orderUserId = getRelationId(orderData.user);
-
-  const isOwner = orderUserId === String(user.id);
+  const isOwner = getRelationId(order.user) === String(user.id);
   const isAdmin = user.role === "admin";
 
   if (!isOwner && !isAdmin) {
-    return NextResponse.redirect(
-      new URL(`/${locale}/account/orders`, request.url)
-    );
+    return denied();
   }
 
-  if (orderData.paymentStatus !== "paid") {
-    return NextResponse.redirect(
-      new URL(`/${locale}/account/orders`, request.url)
-    );
+  if (order.paymentStatus !== "paid" || order.status !== "completed") {
+    return denied();
   }
 
-  const items = Array.isArray(orderData.items)
-    ? orderData.items
-    : [];
+  const items = Array.isArray(order.items) ? order.items : [];
+  const purchasedItem = items.find(
+    (item) =>
+      isObject(item) &&
+      item.type === "digital" &&
+      getRelationId(item.artwork) === artworkId
+  );
 
-  const orderItem = items.find((item) => {
-    if (!isObject(item)) {
-      return false;
-    }
-
-    return getRelationId(item.artwork) === String(artworkId);
-  });
-
-  if (!isObject(orderItem)) {
-    return NextResponse.redirect(
-      new URL(`/${locale}/account/orders`, request.url)
-    );
+  if (!purchasedItem) {
+    return denied();
   }
 
-  let artworkData: Record<string, unknown> | null = null;
-
-  if (isObject(orderItem.artwork)) {
-    artworkData = orderItem.artwork;
-  } else {
-    const artwork = await payload.findByID({
-      collection: "artworks" as never,
+  let artwork: Dictionary;
+  try {
+    const result = await payload.findByID({
+      collection: "artworks",
       id: toPayloadId(artworkId),
-      depth: 3,
+      depth: 0,
       overrideAccess: true,
     });
-
-    artworkData = artwork as Record<string, unknown>;
+    artwork = result as unknown as Dictionary;
+  } catch {
+    return denied();
   }
 
-  const digitalFileUrl = await getDigitalFileUrl(
-    artworkData.digitalFile
-  );
+  if (artwork.type !== "digital") {
+    return denied();
+  }
 
-  if (!digitalFileUrl) {
-    return NextResponse.redirect(
-      new URL(`/${locale}/account/orders`, request.url)
+  const digitalFileId = getRelationId(artwork.digitalFile);
+  if (!digitalFileId) {
+    return denied();
+  }
+
+  let media: Dictionary;
+  try {
+    const result = await payload.findByID({
+      collection: "media",
+      id: toPayloadId(digitalFileId),
+      depth: 0,
+      overrideAccess: true,
+    });
+    media = result as unknown as Dictionary;
+  } catch {
+    return denied();
+  }
+
+  // Explicitly fail closed until the migration has protected old originals.
+  if (media.isProtected !== true) {
+    console.error(`Paid original Media #${digitalFileId} is not protected`);
+    return NextResponse.json(
+      { error: "Digital file configuration is incomplete" },
+      { status: 503, headers: { "Cache-Control": "no-store" } }
     );
   }
 
-  return NextResponse.redirect(
-    new URL(digitalFileUrl, request.url)
+  const filename = media.filename;
+  if (
+    typeof filename !== "string" ||
+    filename.length === 0 ||
+    filename === "." ||
+    filename === ".." ||
+    path.basename(filename) !== filename ||
+    filename.includes("\\")
+  ) {
+    return denied();
+  }
+
+  const collectionConfig = payload.config.collections.find(
+    (collection) => collection.slug === "media"
   );
+  const uploadConfig = collectionConfig?.upload;
+  const staticDir =
+    uploadConfig &&
+    typeof uploadConfig === "object" &&
+    typeof uploadConfig.staticDir === "string"
+      ? uploadConfig.staticDir
+      : undefined;
+
+  let file: Buffer | null;
+  try {
+    file = await readLocalUpload(filename, staticDir);
+  } catch (error) {
+    console.error("Could not read protected digital file:", error);
+    return NextResponse.json(
+      { error: "File temporarily unavailable" },
+      { status: 503, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
+  if (!file) {
+    return NextResponse.json(
+      { error: "File not found in local storage" },
+      { status: 404, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
+  const mimeType =
+    typeof media.mimeType === "string" &&
+    /^[\w.+-]+\/[\w.+-]+$/.test(media.mimeType)
+      ? media.mimeType
+      : "application/octet-stream";
+
+  return new NextResponse(new Uint8Array(file), {
+    status: 200,
+    headers: {
+      "Content-Type": mimeType,
+      "Content-Length": String(file.byteLength),
+      "Content-Disposition": `attachment; filename="download"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      "Cache-Control": "private, no-store, max-age=0",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
 }

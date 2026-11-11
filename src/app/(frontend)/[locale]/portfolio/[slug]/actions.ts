@@ -5,18 +5,17 @@ import { getCurrentUser } from "@/lib/currentUser";
 import {
   getFavoriteIds,
   getFavoriteRelationValues,
-  normalizeRelationValue,
 } from "@/lib/favorites";
 import { getPayloadClient } from "@/lib/payload";
 
 function getFormValue(formData: FormData, key: string) {
   const value = formData.get(key);
+  return typeof value === "string" ? value.trim() : "";
+}
 
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim();
+function numericId(value: string | number): number | null {
+  const num = Number(value);
+  return Number.isSafeInteger(num) && num > 0 ? num : null;
 }
 
 export async function toggleFavorite(formData: FormData) {
@@ -25,33 +24,37 @@ export async function toggleFavorite(formData: FormData) {
   const artworkId = getFormValue(formData, "artworkId");
 
   const user = await getCurrentUser();
-
   if (!user) {
     redirect(`/${locale}/login`);
   }
 
+  const userId = numericId(user.id);
+  const favoriteArtworkId = numericId(artworkId);
+  if (userId === null || favoriteArtworkId === null) {
+    redirect(`/${locale}/portfolio/${slug}`);
+  }
+
   const payload = await getPayloadClient();
-
-  const favoriteIds = await getFavoriteIds(user.id);
-  const favoriteValues = await getFavoriteRelationValues(user.id);
-
-  const isAlreadyFavorite = favoriteIds.includes(artworkId);
+  const favoriteIds = await getFavoriteIds(userId);
+  const favoriteValues = await getFavoriteRelationValues(userId);
+  const isAlreadyFavorite = favoriteIds.includes(String(favoriteArtworkId));
 
   const nextFavorites = isAlreadyFavorite
-    ? favoriteValues.filter(
-        (favorite) => String(favorite) !== artworkId
-      )
-    : [
-        ...favoriteValues,
-        normalizeRelationValue(artworkId),
-      ];
+    ? favoriteValues.filter((favorite) => Number(favorite) !== favoriteArtworkId)
+    : [...favoriteValues, favoriteArtworkId];
+
+  const numericFavorites = Array.from(
+    new Set(
+      nextFavorites
+        .map(Number)
+        .filter((value) => Number.isSafeInteger(value) && value > 0)
+    )
+  );
 
   await payload.update({
-    collection: "users" as never,
-    id: user.id,
-    data: {
-      favorites: nextFavorites,
-    },
+    collection: "users",
+    id: userId,
+    data: { favorites: numericFavorites },
     overrideAccess: true,
   });
 

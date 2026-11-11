@@ -4,14 +4,11 @@ import { getPayloadClient } from "@/lib/payload";
 
 export const runtime = "nodejs";
 
-function toPayloadId(value: string): string | number {
+function toPayloadId(value: string): number | null {
   const numberValue = Number(value);
-
-  if (!Number.isNaN(numberValue) && value.trim() !== "") {
-    return numberValue;
-  }
-
-  return value;
+  return Number.isSafeInteger(numberValue) && numberValue > 0
+    ? numberValue
+    : null;
 }
 
 async function markOrderPaid({
@@ -23,25 +20,19 @@ async function markOrderPaid({
   stripeSessionId?: string;
   stripePaymentIntentId?: string;
 }) {
+  const numericOrderId = toPayloadId(orderId);
+  if (numericOrderId === null) return;
+
   const payload = await getPayloadClient();
-
-  const data: Record<string, unknown> = {
-    status: "completed",
-    paymentStatus: "paid",
-  };
-
-  if (stripeSessionId) {
-    data.stripeSessionId = stripeSessionId;
-  }
-
-  if (stripePaymentIntentId) {
-    data.stripePaymentIntentId = stripePaymentIntentId;
-  }
-
   await payload.update({
-    collection: "orders" as never,
-    id: toPayloadId(orderId),
-    data,
+    collection: "orders",
+    id: numericOrderId,
+    data: {
+      status: "completed",
+      paymentStatus: "paid",
+      ...(stripeSessionId ? { stripeSessionId } : {}),
+      ...(stripePaymentIntentId ? { stripePaymentIntentId } : {}),
+    },
     overrideAccess: true,
   });
 }
@@ -55,45 +46,34 @@ async function markOrderCancelled({
   stripeSessionId?: string;
   stripePaymentIntentId?: string;
 }) {
-  const payload = await getPayloadClient();
+  const numericOrderId = toPayloadId(orderId);
+  if (numericOrderId === null) return;
 
+  const payload = await getPayloadClient();
   const currentOrder = await payload.findByID({
-    collection: "orders" as never,
-    id: toPayloadId(orderId),
+    collection: "orders",
+    id: numericOrderId,
     depth: 0,
     overrideAccess: true,
   });
 
-  const currentOrderData = currentOrder as Record<string, unknown>;
-
-  if (currentOrderData.paymentStatus === "paid") {
-    return;
-  }
-
-  const data: Record<string, unknown> = {
-    status: "cancelled",
-    paymentStatus: "unpaid",
-  };
-
-  if (stripeSessionId) {
-    data.stripeSessionId = stripeSessionId;
-  }
-
-  if (stripePaymentIntentId) {
-    data.stripePaymentIntentId = stripePaymentIntentId;
-  }
+  if (currentOrder.paymentStatus === "paid") return;
 
   await payload.update({
-    collection: "orders" as never,
-    id: toPayloadId(orderId),
-    data,
+    collection: "orders",
+    id: numericOrderId,
+    data: {
+      status: "cancelled",
+      paymentStatus: "unpaid",
+      ...(stripeSessionId ? { stripeSessionId } : {}),
+      ...(stripePaymentIntentId ? { stripePaymentIntentId } : {}),
+    },
     overrideAccess: true,
   });
 }
 
 export async function POST(request: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
   if (!webhookSecret) {
     return NextResponse.json(
       { error: "STRIPE_WEBHOOK_SECRET is missing" },
@@ -102,7 +82,6 @@ export async function POST(request: NextRequest) {
   }
 
   const signature = request.headers.get("stripe-signature");
-
   if (!signature) {
     return NextResponse.json(
       { error: "Missing stripe-signature header" },
@@ -111,15 +90,9 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.text();
-
   let event;
-
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      webhookSecret
-    );
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch {
     return NextResponse.json(
       { error: "Invalid webhook signature" },
@@ -129,9 +102,7 @@ export async function POST(request: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-
     const orderId = session.metadata?.orderId;
-
     if (orderId && session.payment_status === "paid") {
       await markOrderPaid({
         orderId,
@@ -146,9 +117,7 @@ export async function POST(request: NextRequest) {
 
   if (event.type === "payment_intent.succeeded") {
     const paymentIntent = event.data.object;
-
     const orderId = paymentIntent.metadata?.orderId;
-
     if (orderId) {
       await markOrderPaid({
         orderId,
@@ -159,9 +128,7 @@ export async function POST(request: NextRequest) {
 
   if (event.type === "checkout.session.expired") {
     const session = event.data.object;
-
     const orderId = session.metadata?.orderId;
-
     if (orderId) {
       await markOrderCancelled({
         orderId,
@@ -176,9 +143,7 @@ export async function POST(request: NextRequest) {
 
   if (event.type === "payment_intent.payment_failed") {
     const paymentIntent = event.data.object;
-
     const orderId = paymentIntent.metadata?.orderId;
-
     if (orderId) {
       await markOrderCancelled({
         orderId,
@@ -187,7 +152,5 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({
-    received: true,
-  });
+  return NextResponse.json({ received: true });
 }

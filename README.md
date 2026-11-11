@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ZLO: digital originals migration (Payload + PostgreSQL)
 
-## Getting Started
+This migration avoids importing Payload through `tsx` or `payload run`.
+It uses the already-installed PostgreSQL command line client (`psql`) via Node.
+It only updates `media.is_protected` for media IDs referenced by
+`artworks.digital_file_id` where the artwork is digital.
 
-First, run the development server:
+## Installation
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Copy/extract the `scripts/protect-digital-media.cjs` file into your project.
+The previous `scripts/protect-digital-media.ts` is not needed for this migration.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Use
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Ensure `DATABASE_URL` is in `.env`, Node 22 and `psql` are available.
+Back up the database first and keep the `media/` folder unchanged.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+    node scripts/protect-digital-media.cjs
 
-## Learn More
+This is a dry run showing which originals are unprotected. No updates occur.
 
-To learn more about Next.js, take a look at the following resources:
+    node scripts/protect-digital-media.cjs --apply
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This updates the identified originals and verifies them. If the table or
+column names differ, the command stops with a SQL error; it will not try to
+guess the database schema.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## After migration
 
-## Deploy on Vercel
+- Confirm Media #3 isProtected is true.
+- As a signed-in customer who owns paid order #9, retry its download.
+- Check the media URL anonymously; it should no longer be public.
+- Verify public gallery images are still displayed.
+- If a preview image was also assigned as a digital original, it may stop
+  being public: provide a separate preview media document in the artwork gallery.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+CAUTION: files committed to a publicly accessible git repository cannot be
+protected by Payload access controls; remove paid originals from git history.

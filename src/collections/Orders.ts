@@ -16,7 +16,7 @@ export const Orders: CollectionConfig = {
   },
 
   access: {
-    create: ({ req }) => Boolean(req.user),
+    create: ({ req }) => req.user?.role === "admin",
 
     read: ({ req }) => {
       if (req.user?.role === "admin") {

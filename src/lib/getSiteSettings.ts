@@ -17,7 +17,6 @@ function normalizeMedia(media: unknown): SiteMedia | undefined {
   }
 
   const data = media as PayloadMedia;
-
   if (!data.url) {
     return undefined;
   }
@@ -35,9 +34,8 @@ function getString(value: unknown, fallback = "") {
 
 export async function getSiteSettings(): Promise<SiteSettings> {
   const payload = await getPayloadClient();
-
   const settings = await payload.findGlobal({
-    slug: "site-settings" as never,
+    slug: "site-settings",
     depth: 2,
   });
 
@@ -46,16 +44,15 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   const resume = isObject(settings.resume) ? settings.resume : {};
   const contact = isObject(settings.contact) ? settings.contact : {};
 
-  const aboutParagraphs = Array.isArray(about.paragraphs)
+  const aboutParagraphs: string[] = Array.isArray(about.paragraphs)
     ? about.paragraphs
-        .map((item) => {
+        .map((item: unknown) => {
           if (!isObject(item)) {
             return null;
           }
-
           return getString(item.text);
         })
-        .filter((item): item is string => Boolean(item))
+        .filter((item: string | null): item is string => Boolean(item))
     : [];
 
   return {
@@ -68,7 +65,6 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       ),
       heroImage: normalizeMedia(home.heroImage),
     },
-
     about: {
       title: getString(about.title, "About Me"),
       image: normalizeMedia(about.image),
@@ -80,7 +76,6 @@ export async function getSiteSettings(): Promise<SiteSettings> {
               "Here visitors can learn more about artistic background, inspiration, techniques, exhibitions and creative journey.",
             ],
     },
-
     resume: {
       title: getString(resume.title, "Resume"),
       education: getString(resume.education),
@@ -88,7 +83,6 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       achievements: getString(resume.achievements),
       cvFile: normalizeMedia(resume.cvFile),
     },
-
     contact: {
       title: getString(contact.title, "Contact"),
       description: getString(
