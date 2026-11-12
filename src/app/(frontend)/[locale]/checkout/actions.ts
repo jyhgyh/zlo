@@ -132,7 +132,13 @@ export async function createOrder(formData: FormData) {
       });
 
       const artworkData = artwork as unknown as Record<string, unknown>;
-      if (artworkData.type !== "digital") {
+      // Check the current CMS state, never trust client-side cart data.
+      if (
+        artworkData.type !== "digital" ||
+        artworkData.showInShop === false ||
+        artworkData.isPurchasable === false ||
+        artworkData.availability === "sold"
+      ) {
         continue;
       }
 

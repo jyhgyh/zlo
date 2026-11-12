@@ -72,6 +72,7 @@ export interface Config {
     categories: Category;
     tags: Tag;
     artworks: Artwork;
+    projects: Project;
     'contact-messages': ContactMessage;
     orders: Order;
     'payload-kv': PayloadKv;
@@ -86,6 +87,7 @@ export interface Config {
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     tags: TagsSelect<false> | TagsSelect<true>;
     artworks: ArtworksSelect<false> | ArtworksSelect<true>;
+    projects: ProjectsSelect<false> | ProjectsSelect<true>;
     'contact-messages': ContactMessagesSelect<false> | ContactMessagesSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -167,7 +169,7 @@ export interface User {
 export interface Media {
   id: number;
   alt: string;
-  mediaType?: ('image' | 'video') | null;
+  mediaType?: ('image' | 'video' | 'archive') | null;
   /**
    * Enable for paid digital originals. Public gallery images and preview videos must remain unchecked.
    */
@@ -195,6 +197,18 @@ export interface Artwork {
   shortDescription?: string | null;
   description?: string | null;
   featured?: boolean | null;
+  /**
+   * Display this artwork in the shop catalog.
+   */
+  showInShop?: boolean | null;
+  /**
+   * Display selected artworks in the portfolio (not all shop products).
+   */
+  showInPortfolio?: boolean | null;
+  /**
+   * For digital artworks: allow Stripe purchases. For physical paintings: allow Contact inquiries. Sold physical works are hidden from Shop.
+   */
+  isPurchasable?: boolean | null;
   type: 'physical' | 'digital';
   gallery?:
     | {
@@ -204,7 +218,10 @@ export interface Artwork {
     | null;
   videos?: (number | Media)[] | null;
   digitalFile?: (number | null) | Media;
-  price: number;
+  /**
+   * Required for digital sales. Optional for physical paintings (price on request).
+   */
+  price?: number | null;
   currency?: ('EUR' | 'USD') | null;
   availability?: ('available' | 'sold') | null;
   year?: number | null;
@@ -245,6 +262,55 @@ export interface Tag {
   id: number;
   title: string;
   slug: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "projects".
+ */
+export interface Project {
+  id: number;
+  title: string;
+  slug: string;
+  /**
+   * Publish only work that you are permitted to show publicly.
+   */
+  visibility: 'draft' | 'published';
+  projectType: 'company' | 'freelance' | 'personal';
+  company?: string | null;
+  client?: string | null;
+  role?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  summary?: string | null;
+  description?: string | null;
+  /**
+   * What Zlata personally did, separate from the team's work.
+   */
+  contribution?: string | null;
+  cover?: (number | null) | Media;
+  gallery?:
+    | {
+        media: number | Media;
+        id?: string | null;
+      }[]
+    | null;
+  videos?: (number | Media)[] | null;
+  skills?:
+    | {
+        name: string;
+        id?: string | null;
+      }[]
+    | null;
+  tools?:
+    | {
+        name: string;
+        id?: string | null;
+      }[]
+    | null;
+  externalLink?: string | null;
+  featured?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -334,6 +400,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'artworks';
         value: number | Artwork;
+      } | null)
+    | ({
+        relationTo: 'projects';
+        value: number | Project;
       } | null)
     | ({
         relationTo: 'contact-messages';
@@ -462,6 +532,9 @@ export interface ArtworksSelect<T extends boolean = true> {
   shortDescription?: T;
   description?: T;
   featured?: T;
+  showInShop?: T;
+  showInPortfolio?: T;
+  isPurchasable?: T;
   type?: T;
   gallery?:
     | T
@@ -486,6 +559,48 @@ export interface ArtworksSelect<T extends boolean = true> {
   heightPx?: T;
   categories?: T;
   tags?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "projects_select".
+ */
+export interface ProjectsSelect<T extends boolean = true> {
+  title?: T;
+  slug?: T;
+  visibility?: T;
+  projectType?: T;
+  company?: T;
+  client?: T;
+  role?: T;
+  startDate?: T;
+  endDate?: T;
+  summary?: T;
+  description?: T;
+  contribution?: T;
+  cover?: T;
+  gallery?:
+    | T
+    | {
+        media?: T;
+        id?: T;
+      };
+  videos?: T;
+  skills?:
+    | T
+    | {
+        name?: T;
+        id?: T;
+      };
+  tools?:
+    | T
+    | {
+        name?: T;
+        id?: T;
+      };
+  externalLink?: T;
+  featured?: T;
   updatedAt?: T;
   createdAt?: T;
 }

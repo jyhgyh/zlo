@@ -1,38 +1,32 @@
-# ZLO: digital originals migration (Payload + PostgreSQL)
+# ZLO Stripe webhook hardening
 
-This migration avoids importing Payload through `tsx` or `payload run`.
-It uses the already-installed PostgreSQL command line client (`psql`) via Node.
-It only updates `media.is_protected` for media IDs referenced by
-`artworks.digital_file_id` where the artwork is digital.
+This patch replaces only `src/app/api/stripe/webhook/route.ts`.
+It leaves Stripe Checkout, Payload schemas and previous paid orders unchanged.
 
-## Installation
+## Install
 
-Copy/extract the `scripts/protect-digital-media.cjs` file into your project.
-The previous `scripts/protect-digital-media.ts` is not needed for this migration.
+1. Back up the project and database, or commit your current work to a branch.
+2. Unzip into the root `~/zlo`, preserving paths.
+3. Run `npx tsc --noEmit` and restart `npm run dev`.
+4. Keep `stripe listen --events checkout.session.completed,checkout.session.expired,payment_intent.succeeded,payment_intent.payment_failed --forward-to localhost:3000/api/stripe/webhook` running.
+5. Create a fresh test purchase (new digital artwork or an account that has not purchased it).
+6. Confirm that the order is completed/paid and the buyer can download. Check that anonymous and non-buyers cannot download.
+7. Test a declined card: `4000 0000 0000 0002`. The order must not become paid.
+8. `stripe trigger payment_intent.succeeded` is expected to return HTTP 200, but *not* mark any order paid.
 
-## Use
+## Behavior
 
-Ensure `DATABASE_URL` is in `.env`, Node 22 and `psql` are available.
-Back up the database first and keep the `media/` folder unchanged.
+- Validates Stripe webhook signature and fetches a fresh Checkout Session from Stripe.
+- Checks internal order ID and user, Session ID, payment intent, items, total and currency.
+- Grants access only on Checkout Session completed AND paid.
+- Ignores PaymentIntent events for fulfillment and failed attempts for cancellation.
+- Cancels only expired, unpaid Checkout Sessions.
+- Does not regress refunded orders to paid.
 
-    node scripts/protect-digital-media.cjs
+## Limits
 
-This is a dry run showing which originals are unprotected. No updates occur.
-
-    node scripts/protect-digital-media.cjs --apply
-
-This updates the identified originals and verifies them. If the table or
-column names differ, the command stops with a SQL error; it will not try to
-guess the database schema.
-
-## After migration
-
-- Confirm Media #3 isProtected is true.
-- As a signed-in customer who owns paid order #9, retry its download.
-- Check the media URL anonymously; it should no longer be public.
-- Verify public gallery images are still displayed.
-- If a preview image was also assigned as a digital original, it may stop
-  being public: provide a separate preview media document in the artwork gallery.
-
-CAUTION: files committed to a publicly accessible git repository cannot be
-protected by Payload access controls; remove paid originals from git history.
+- If Stripe Session fails business validation, the handler logs a warning and responds HTTP 200 without granting download. HTTP 200 does not always imply an order was paid: inspect the Payload order and server logs.
+- No durable event ID table/queue is added. Replays are safe for the current simple status transitions, but exactly-once downstream actions (emails, inventory) need separate idempotency handling later.
+- This assumes Checkout line items have quantity 1, no discounts/taxes/shipping, and prices use EUR/USD cents. Revisit these checks if Checkout changes.
+- Does not handle refunds or disputes automatically.
+- `checkout.session.completed` is sufficient for the current card-only payment flow. Add `checkout.session.async_payment_succeeded` if enabling delayed payment methods in the future.

@@ -21,6 +21,9 @@ function numericId(value: string | number): number | null {
 export async function toggleFavorite(formData: FormData) {
   const locale = getFormValue(formData, "locale") || "en";
   const slug = getFormValue(formData, "slug");
+  const source = getFormValue(formData, "source") === "shop"
+    ? "shop"
+    : "portfolio";
   const artworkId = getFormValue(formData, "artworkId");
 
   const user = await getCurrentUser();
@@ -31,7 +34,7 @@ export async function toggleFavorite(formData: FormData) {
   const userId = numericId(user.id);
   const favoriteArtworkId = numericId(artworkId);
   if (userId === null || favoriteArtworkId === null) {
-    redirect(`/${locale}/portfolio/${slug}`);
+    redirect(`/${locale}/${source}/${slug}`);
   }
 
   const payload = await getPayloadClient();
@@ -58,5 +61,5 @@ export async function toggleFavorite(formData: FormData) {
     overrideAccess: true,
   });
 
-  redirect(`/${locale}/portfolio/${slug}`);
+  redirect(`/${locale}/${source}/${slug}`);
 }

@@ -1,33 +1,22 @@
 import ArtworkCard from "./ArtworkCard";
 import { getArtworks } from "@/lib/getArtworks";
+import { isPortfolioArtwork, isShopArtwork } from "@/lib/artworkVisibility";
 
-type FeaturedWorksProps = {
-  locale?: string;
-};
+type FeaturedWorksProps = { locale?: string };
 
-export default async function FeaturedWorks({
-  locale = "en",
-}: FeaturedWorksProps) {
+export default async function FeaturedWorks({ locale = "en" }: FeaturedWorksProps) {
   const artworks = await getArtworks();
-
   const featured = artworks.filter(
-    (artwork) => artwork.featured
+    (artwork) => artwork.featured && (isPortfolioArtwork(artwork) || isShopArtwork(artwork))
   );
 
   return (
     <section className="py-20">
-      <h2 className="mb-8 text-3xl font-bold">
-        Featured Works
-      </h2>
-
+      <h2 className="mb-8 text-3xl font-bold">Featured Works</h2>
       {featured.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {featured.map((artwork) => (
-            <ArtworkCard
-              key={artwork.id}
-              artwork={artwork}
-              locale={locale}
-            />
+            <ArtworkCard key={artwork.id} artwork={artwork} locale={locale} />
           ))}
         </div>
       ) : (

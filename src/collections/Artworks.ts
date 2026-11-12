@@ -102,6 +102,35 @@ export const Artworks: CollectionConfig = {
     },
 
     {
+      name: "showInShop",
+      label: "Show in Shop",
+      type: "checkbox",
+      defaultValue: true,
+      admin: {
+        description: "Display this artwork in the shop catalog.",
+      },
+    },
+    {
+      name: "showInPortfolio",
+      label: "Show in Portfolio",
+      type: "checkbox",
+      defaultValue: false,
+      admin: {
+        description: "Display selected artworks in the portfolio (not all shop products).",
+      },
+    },
+    {
+      name: "isPurchasable",
+      label: "Offer for sale / inquiry",
+      type: "checkbox",
+      defaultValue: true,
+      admin: {
+        description:
+          "For digital artworks: allow Stripe purchases. For physical paintings: allow Contact inquiries. Sold physical works are hidden from Shop.",
+      },
+    },
+
+    {
       name: "type",
       type: "select",
       required: true,
@@ -154,7 +183,8 @@ export const Artworks: CollectionConfig = {
     {
       name: "price",
       type: "number",
-      required: true,
+      min: 0,
+      admin: { description: "Required for digital sales. Optional for physical paintings (price on request)." },
     },
 
     {
